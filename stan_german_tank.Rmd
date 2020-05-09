@@ -1,0 +1,58 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(rstan)
+```
+
+### German Tank Problem using quap
+```{r}
+
+
+# quap(
+#   alist(
+#     cnt ~ dunif(0, N),
+#     N ~ dunif(max(gt_data$cnt), 10000)
+#     ),
+#   data = gt_data
+# )
+```
+
+```{r}
+options(mc.cores = parallel::detectCores())
+
+rstan_options(auto_write = TRUE)
+
+Sys.setenv(LOCAL_CPPFLAGS = '-march=corei7')
+```
+
+```{r}
+ocode = "
+data {
+    int<lower=1> M;  // number of serial numbers observed
+    real y[M];       // serial numbers
+}
+parameters {
+    real<lower=max(y)> N;
+}
+model {
+    N ~ uniform(max(y), 10000);  // P(N)
+    y ~ uniform(0, N);           // P(D|N)
+}
+"
+
+gt_data <- c(10, 256, 202, 97)
+
+data = list(y = gt_data, 
+            M = 4)
+fit = stan(model_code=ocode, 
+           data=data, 
+           iter=100000, 
+           warmup=1000, 
+           chains=4)
+fit
+```
+
+
